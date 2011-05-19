@@ -41,58 +41,7 @@ sub runtests {
     my @scenarios_of_caller = @{$feature->scenarios};
 
     for my $scenario (@scenarios_of_caller) {
-        my $skip = 0;
-        my $gwt;
-
-        Test::Cukes->builder->note("Scenario: ", $scenario->name);
-
-        STEP:
-        for my $step_text (@{$scenario->steps}) {
-            my ($pre, $step) = split " ", $step_text, 2;
-            $gwt = $pre if $pre =~ /(Given|When|Then)/;
-
-            for my $step_pattern (keys %$steps) {
-                my $cb = $steps->{$step_pattern}->{code};
-
-
-                if (my (@matches) = $step =~ m/$step_pattern/) {
-                    my $ok = 1;
-
-                    my $def = $steps->{$step_pattern}{definition};
-                    Test::Cukes->builder->note(
-                        join ':', @$def{qw( filename line )}
-                    );
-
-                    if ($skip) {
-                        Test::Cukes->builder->skip($step_text);
-                        next STEP;
-                    }
-
-                    my $error;
-                    try {
-                        $cb->(@matches);
-                    } catch {
-                        $ok = 0;
-                        $skip = 1;
-                        $error = $_;
-                    };
-
-                    Test::Cukes->builder->ok($ok, $step_text);
-                    Test::Cukes->builder->diag($error) if $error;
-
-                    next STEP;
-                }
-            }
-
-            # If we get here we didn't find a definition
-
-            Test::Cukes->builder->todo_skip($step_text);
-            $step_text =~ s/^(?:And|But)(?=\s)/$gwt/;
-            push @missing_steps, $step_text;
-
-            # Don't run any more tests, even if defined
-            $skip = 1;
-        }
+        _run_scenario($scenario);
     }
 
     # If the user doesn't specify tests explicitly when they use Test::Cukes;,
@@ -102,6 +51,61 @@ sub runtests {
     report_missing_steps();
 
     return 0;
+}
+
+sub _run_scenario {
+    my $scenario = shift;
+
+    my $skip = 0;
+    my $gwt;
+    Test::Cukes->builder->note("Scenario: ", $scenario->name);
+
+    STEP:
+    for my $step_text (@{$scenario->steps}) {
+        my ($pre, $step) = split " ", $step_text, 2;
+        $gwt = $pre if $pre =~ /(Given|When|Then)/;
+
+        for my $step_pattern (keys %$steps) {
+            my $cb = $steps->{$step_pattern}->{code};
+
+            if (my (@matches) = $step =~ m/$step_pattern/) {
+                my $ok = 1;
+
+                my $def = $steps->{$step_pattern}{definition};
+                Test::Cukes->builder->note(
+                    join ':', @$def{qw( filename line )}
+                );
+
+                if ($skip) {
+                    Test::Cukes->builder->skip($step_text);
+                    next STEP;
+                }
+
+                my $error;
+                try {
+                    $cb->(@matches);
+                } catch {
+                    $ok = 0;
+                    $skip = 1;
+                    $error = $_;
+                };
+
+                Test::Cukes->builder->ok($ok, $step_text);
+                Test::Cukes->builder->diag($error) if $error;
+
+                next STEP;
+            }
+        }
+
+        # If we get here we didn't find a definition
+
+        Test::Cukes->builder->todo_skip($step_text);
+        $step_text =~ s/^(?:And|But)(?=\s)/$gwt/;
+        push @missing_steps, $step_text;
+
+        # Don't run any more tests, even if defined
+        $skip = 1;
+    }
 }
 
 sub report_missing_steps {
