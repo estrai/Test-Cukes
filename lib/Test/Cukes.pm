@@ -4,6 +4,7 @@ use warnings;
 use Test::Cukes::Feature;
 use Carp::Assert;
 use Try::Tiny;
+use Tie::IxHash;
 
 use base 'Test::Builder::Module';
 
@@ -14,6 +15,10 @@ our @missing_steps = ();
 
 my $steps = {};
 my $feature = {};
+
+# When we come to resolve step definitions, do so in the order they are
+# defined.
+tie %$steps, 'Tie::IxHash';
 
 sub feature {
     my $caller = caller;
