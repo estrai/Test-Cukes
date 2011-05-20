@@ -9,7 +9,7 @@ requires
     "Carp::Assert"           => "0.20",
     "Any::Moose"             => "0.07",
     "Test::Builder::Module"  => "0.80",
-    "Test::CSV"              => "1.00",
+    "Text::CSV"              => "1.00",
     ;
 
 tests 't/*.t';
