@@ -28,7 +28,7 @@ sub BUILDARGS {
             body => "",
             scenarios => []
         };
-        my @blocks = split /\n\n/, $text;
+        my @blocks = split /\n\n(?!\s+Examples)/, $text;
         my $meta = shift @blocks;
 
         unless ($meta =~ m/^Feature:\s([^\n]+x?)$(.+)\z/sm) {

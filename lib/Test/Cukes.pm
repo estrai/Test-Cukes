@@ -41,7 +41,16 @@ sub runtests {
     my @scenarios_of_caller = @{$feature->scenarios};
 
     for my $scenario (@scenarios_of_caller) {
-        _run_scenario($scenario);
+        my $examples = $scenario->examples;
+        if ( $examples && @{$examples->{rows}} > 0 ) {
+            for my $row (@{$examples->{rows}}) {
+                my %ex; @ex{ @{$examples->{headers}} } = @$row;
+                _run_scenario($scenario, \%ex);
+            }
+        }
+        else {
+            _run_scenario($scenario);
+        }
     }
 
     # If the user doesn't specify tests explicitly when they use Test::Cukes;,
@@ -55,13 +64,21 @@ sub runtests {
 
 sub _run_scenario {
     my $scenario = shift;
+    my $example  = shift;
 
     my $skip = 0;
     my $gwt;
     Test::Cukes->builder->note("Scenario: ", $scenario->name);
 
     STEP:
-    for my $step_text (@{$scenario->steps}) {
+    for my $orig_step_text (@{$scenario->steps}) {
+        my $step_text = $orig_step_text;
+
+        if ($example && $step_text =~ /<.+>?/) {
+            # replace "Examples" tags
+            $step_text =~ s/<$_>/$example->{$_}/g for keys %$example;
+        }
+
         my ($pre, $step) = split " ", $step_text, 2;
         $gwt = $pre if $pre =~ /(Given|When|Then)/;
 
@@ -158,9 +175,14 @@ Write your test program like this:
     I want to write behavior tests
 
     Scenario: Hello World
-      Given the test program is running
+      Given the <program> program is <status>
       When it reaches this step
       Then it should pass
+
+    Examples:
+    | program | status  |
+    | test    | running |
+    | test    | failing |
   TEXT
 
   Given qr/the (.+) program is (.+)/, sub {

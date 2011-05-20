@@ -8,7 +8,9 @@ requires
     "Try::Tiny"              => "0.07",
     "Carp::Assert"           => "0.20",
     "Any::Moose"             => "0.07",
-    "Test::Builder::Module"  => "0.80";
+    "Test::Builder::Module"  => "0.80",
+    "Test::CSV"              => "1.00",
+    ;
 
 tests 't/*.t';
 author_tests 'xt';

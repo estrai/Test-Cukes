@@ -1,5 +1,7 @@
 package Test::Cukes::Scenario;
 use Any::Moose;
+use Text::CSV;
+use Test::Cukes::Scenario::Examples;
 
 has name => (
     is => "rw",
@@ -13,6 +15,12 @@ has steps => (
     isa => "ArrayRef[Str]"
 );
 
+has examples => (
+    is => 'rw',
+    required => 0,
+    isa => 'HashRef',
+);
+
 sub BUILDARGS {
     my $class = shift;
     if (@_ == 1 && ! ref $_[0]) {
@@ -22,17 +30,32 @@ sub BUILDARGS {
             steps => []
         };
 
+        my $_examples = 0;
+        my @examples_plain;
+        my $scenario_re = qr/^Scenario:\s(.+)$/;
         for my $line (split /\n+/, $scenario_text) {
-            if ($line =~ /^Scenario:\s+(.+)$/) {
+            if ($_examples && $line !~ $scenario_re) {
+                push @examples_plain, $line;
+            }
+            elsif ($line =~ $scenario_re) {
                 $args->{name} = $1;
             }
-            elsif ($line =~ /^[ ]{2,}(Given|When|Then|And|But)\s+(.+)$/) {
+            elsif ($line =~ /^\s*(Given|When|Then|And|But)\s+(.+)$/) {
                 push @{$args->{ steps }}, "$1 $2";
             }
-            elsif (/\S/) {
+            elsif ($line =~ /^\s*Examples:$/) {
+                $_examples++;
+            }
+            elsif ($line =~ /\S/) {
                 die "Unrecognised scenario syntax:\n",
                     "----\n$line\n----\n\n";
             }
+        }
+
+        if(@examples_plain) {
+            $args->{examples} =
+                Test::Cukes::Scenario::Examples->new( examples_plain => \@examples_plain )
+                    ->examples;
         }
 
         return $args;
