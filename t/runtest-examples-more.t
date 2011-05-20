@@ -19,7 +19,7 @@ Feature: foo
     | yell    | banana |  bananas| 20083|
     | whisper |    beer|beers|1000093 |
 
-  Scenario: Add two numbers
+  Scenario Outline: Add two numbers
     Given I have entered <input_1> into the calculator
     And I have entered <input_2> into the calculator
     When I press <button>

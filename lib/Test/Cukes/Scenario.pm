@@ -32,7 +32,7 @@ sub BUILDARGS {
 
         my $_examples = 0;
         my @examples_plain;
-        my $scenario_re = qr/^Scenario:\s(.+)$/;
+        my $scenario_re = qr/^Scenario(?:\sOutline)?:\s(.+)$/;
         for my $line (split /\n+/, $scenario_text) {
             if ($_examples && $line !~ $scenario_re) {
                 push @examples_plain, $line;
