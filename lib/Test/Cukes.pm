@@ -66,8 +66,7 @@ sub _run_scenario {
     my $scenario = shift;
     my $example  = shift;
 
-    my $skip = 0;
-    my $gwt;
+    my ($skip, $gwt);
     Test::Cukes->builder->note("Scenario: ", $scenario->name);
 
     STEP:
@@ -83,37 +82,33 @@ sub _run_scenario {
         $gwt = $pre if $pre =~ /(Given|When|Then)/;
 
         for my $step_pattern (keys %$steps) {
-            my $cb = $steps->{$step_pattern}->{code};
+            my $cb  = $steps->{$step_pattern}->{code};
+            my $def = $steps->{$step_pattern}->{definition};
 
             if (my (@matches) = $step =~ m/$step_pattern/) {
-                my $ok = 1;
-
-                my $def = $steps->{$step_pattern}{definition};
                 Test::Cukes->builder->note(
                     join ':', @$def{qw( filename line )}
                 );
 
                 if ($skip) {
                     Test::Cukes->builder->skip($step_text);
-                    next STEP;
                 }
+                else {
+                    my $error;
+                    try {
+                        $cb->(@matches);
+                    } catch {
+                        $error = $_;
+                        $skip = 1;
+                    };
 
-                my $error;
-                try {
-                    $cb->(@matches);
-                } catch {
-                    $ok = 0;
-                    $skip = 1;
-                    $error = $_;
-                };
-
-                Test::Cukes->builder->ok($ok, $step_text);
-                Test::Cukes->builder->diag($error) if $error;
+                    Test::Cukes->builder->ok(!$error, $step_text);
+                    Test::Cukes->builder->diag($error) if $error;
+                }
 
                 next STEP;
             }
         }
-
         # If we get here we didn't find a definition
 
         Test::Cukes->builder->todo_skip($step_text);
@@ -129,7 +124,7 @@ sub report_missing_steps {
     return if @missing_steps == 0;
     Test::Cukes->builder->note("There are missing step definitions, fill them in:");
     for my $step_text (@missing_steps) {
-        my ($word, $text) = ($step_text =~ /^(Given|When|Then) (.+)$/);
+        my ($word, $text) = ($step_text =~ /^(Given|When|Then)\s+(.+)$/);
         my $msg = "\n$word qr/${text}/ => sub {\n    ...\n};\n";
         Test::Cukes->builder->note($msg);
     }
